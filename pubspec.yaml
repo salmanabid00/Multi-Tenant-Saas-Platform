@@ -1,0 +1,43 @@
+name: multi_tenant_saas_platform
+description: "A scalable multi-tenant SaaS platform using Flutter and Firebase."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Firebase
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
+  cloud_functions: ^5.0.0
+  
+  # State Management & DI
+  get: ^4.6.6
+  
+  # Functional Programming
+  dartz: ^0.10.1
+  
+  # Fonts
+  google_fonts: ^6.1.0
+
+  # Utils
+  uuid: ^4.0.0
+  shared_preferences: ^2.2.0
+  
+  # Toast
+  toastification: ^2.0.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

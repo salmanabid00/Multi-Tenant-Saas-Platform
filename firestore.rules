@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // HELPER FUNCTIONS
+    // =========================================================
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user has a specific ID
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the user has a specific role for the given tenant
+    // This assumes we are using a 'tenant_users' collection for RBAC
+    // OR Custom Claims. 
+    // APPROACH 1: Custom Claims (Faster, requires Cloud Functions to sync)
+    // function hasTenantRole(tenantId, role) {
+    //   return request.auth.token.tenantId == tenantId && request.auth.token.role == role;
+    // }
+
+    // APPROACH 2: Firestore Lookup (More flexible, costs 1 read)
+    function getTenantRole(tenantId) {
+       // Note: This relies on the ID naming convention "tenantId_userId" for fast lookup
+       return get(/databases/$(database)/documents/tenant_users/$(tenantId + "_" + request.auth.uid)).data.role;
+    }
+
+    function hasRole(tenantId, allowedRoles) {
+      return isAuthenticated() && getTenantRole(tenantId) in allowedRoles;
+    }
+
+    // Verify the document belongs to the tenant
+    function isTenantScoped(tenantId) {
+      return request.resource.data.tenantId == tenantId;
+    }
+
+    // =========================================================
+    // COLLECTIONS
+    // =========================================================
+
+    // 1. Tenants Collection
+    // - Creation: Authenticated users can create a tenant (they become admin via Cloud Function trigger)
+    // - Read: Members of the tenant
+    // - Update: Admins only
+    match /tenants/{tenantId} {
+      allow create: if isAuthenticated(); 
+      allow read: if isAuthenticated() && hasRole(tenantId, ['admin', 'member', 'viewer']);
+      allow update: if isAuthenticated() && hasRole(tenantId, ['admin']);
+      allow delete: if false; // Only via Cloud Functions/Admin SDK
+    }
+
+    // 2. Tenant Users (Junction Table)
+    // ID format: "{tenantId}_{uid}"
+    match /tenant_users/{docId} {
+      // Users can see their own memberships
+      allow read: if isAuthenticated() && (
+        resource.data.uid == request.auth.uid || 
+        hasRole(resource.data.tenantId, ['admin'])
+      );
+      // Only Cloud Functions or Tenant Admins can modify memberships
+      allow write: if false; 
+    }
+
+    // 3. Domain Data (Example: Projects)
+    // Strictly scoped by tenantId
+    match /projects/{projectId} {
+      allow read: if isAuthenticated() && hasRole(resource.data.tenantId, ['admin', 'member', 'viewer']);
+      
+      // Create: Must assign correct tenantId and user must be member/admin
+      allow create: if isAuthenticated() 
+                    && hasRole(request.resource.data.tenantId, ['admin', 'member'])
+                    && isTenantScoped(request.resource.data.tenantId);
+                    
+      // Update: Must maintain tenantId and user must be member/admin
+      allow update: if isAuthenticated() 
+                    && hasRole(resource.data.tenantId, ['admin', 'member'])
+                    && isTenantScoped(resource.data.tenantId);
+                    
+      allow delete: if isAuthenticated() && hasRole(resource.data.tenantId, ['admin']);
+    }
+    
+    // 4. Subscriptions (Sensitive)
+    match /subscriptions/{tenantId} {
+      allow read: if isAuthenticated() && hasRole(tenantId, ['admin']);
+      allow write: if false; // Only Cloud Functions (Stripe Webhooks)
+    }
+    
+    // 5. Users (Public Profiles)
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+  }
+}
