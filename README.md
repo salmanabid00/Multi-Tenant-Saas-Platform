@@ -80,15 +80,6 @@ lib/
 
 ---
 
-## 📸 Screenshots
-
-| Login & Auth | Organization Select | Dashboard | Projects (Isolated) |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/login.png" width="200" alt="Login" /> | <img src="docs/tenants.png" width="200" alt="Tenants" /> | <img src="docs/dashboard.png" width="200" alt="Dashboard" /> | <img src="docs/projects.png" width="200" alt="Projects" /> |
-
-*(Note: Screenshots are placeholders for the repo)*
-
----
 
 ## 🚀 Getting Started
 
