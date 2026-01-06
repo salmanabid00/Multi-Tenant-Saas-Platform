@@ -91,8 +91,8 @@ lib/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/nexus-saas-platform.git
-   cd nexus-saas-platform
+   https://github.com/salmanabid00/Multi-Tenant-Saas-Platform
+
    ```
 
 2. **Install dependencies**
